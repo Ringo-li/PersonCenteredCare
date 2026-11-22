@@ -1,0 +1,6 @@
+{
+  "name": "People First Care",
+  "description": "A person-centred care, personalised guidance, shift coordination, and staff wellbeing platform for small rest homes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
