@@ -23,7 +23,7 @@ import {
   TaskStatus,
 } from '../types';
 
-const STORAGE_KEY = 'people_first_care_prototype_v1';
+const STORAGE_KEY = 'people_first_care_prototype_v1_1';
 
 interface CareStoreContextValue {
   data: CareStoreData;
@@ -148,7 +148,7 @@ export function CareStoreProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [activeStaffId, setActiveStaffIdState] = useState<string>('st-claire');
-  const [portalMode, setPortalMode] = useState<PortalMode>('manager');
+  const [portalMode, setPortalModeState] = useState<PortalMode>('manager');
 
   useEffect(() => {
     try {
@@ -163,14 +163,26 @@ export function CareStoreProvider({ children }: { children: React.ReactNode }) {
     [data.staff, activeStaffId]
   );
 
+  const setPortalMode = (mode: PortalMode) => {
+    setPortalModeState(mode);
+    if (mode === 'staff' && activeStaff.department === 'Management') {
+      setActiveStaffIdState('st-sarah');
+    } else if (
+      mode === 'manager' &&
+      (activeStaff.role === 'Caregiver' || activeStaff.role === 'Housekeeper')
+    ) {
+      setActiveStaffIdState('st-claire');
+    }
+  };
+
   const setActiveStaffId = (staffId: string) => {
     setActiveStaffIdState(staffId);
     const member = data.staff.find((s) => s.id === staffId);
     if (member) {
       if (member.role === 'Caregiver' || member.role === 'Housekeeper') {
-        setPortalMode('staff');
+        setPortalModeState('staff');
       } else {
-        setPortalMode('manager');
+        setPortalModeState('manager');
       }
     }
   };

@@ -81,13 +81,21 @@ function WorkspaceShell() {
   const [focusedResidentId, setFocusedResidentId] = useState<string | undefined>(
     undefined
   );
+  const [focusedTaskId, setFocusedTaskId] = useState<string | undefined>(
+    undefined
+  );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const handleNavigate = (target: AppSection, residentId?: string) => {
+  const handleNavigate = (
+    target: AppSection,
+    residentId?: string,
+    taskId?: string
+  ) => {
     setSection(target);
     if (residentId) {
       setFocusedResidentId(residentId);
     }
+    setFocusedTaskId(taskId);
     setMobileNavOpen(false);
   };
 
@@ -378,6 +386,8 @@ function WorkspaceShell() {
 
           {section === 'operations' && (
             <DailyOperations
+              key={focusedTaskId || 'default-task'}
+              initialTaskId={focusedTaskId}
               onOpenResident={(residentId) =>
                 handleNavigate('residents', residentId)
               }

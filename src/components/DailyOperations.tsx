@@ -27,6 +27,7 @@ import { ConfirmationStatusLabel, TaskStatusLabel } from './StatusText';
 
 interface DailyOperationsProps {
   onOpenResident?: (residentId: string) => void;
+  initialTaskId?: string;
 }
 
 const CAREGIVING_CATEGORIES: CaregivingCategory[] = [
@@ -47,6 +48,7 @@ const HOUSEKEEPING_CATEGORIES: HousekeepingCategory[] = [
 
 export const DailyOperations: React.FC<DailyOperationsProps> = ({
   onOpenResident,
+  initialTaskId,
 }) => {
   const {
     data,
@@ -68,7 +70,7 @@ export const DailyOperations: React.FC<DailyOperationsProps> = ({
   );
   const [onlyMine, setOnlyMine] = useState<boolean>(portalMode === 'staff');
   const [selectedTaskId, setSelectedTaskId] = useState<string>(
-    data.tasks[0]?.id || ''
+    initialTaskId || data.tasks[0]?.id || ''
   );
 
   // Exception Modal
