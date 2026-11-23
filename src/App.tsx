@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ArrowLeftRight,
   CalendarClock,
@@ -21,7 +21,14 @@ import { StaffPortalHome } from './components/StaffPortalHome';
 import { WellbeingImprovement } from './components/WellbeingImprovement';
 import { WorkforceCoordination } from './components/WorkforceCoordination';
 import { CareStoreProvider, useCareStore } from './context/CareStoreContext';
-import { AppSection } from './types';
+import { AppSection, PortalMode } from './types';
+
+interface NavSnapshot {
+  section: AppSection;
+  portalMode: PortalMode;
+  residentId?: string;
+  taskId?: string;
+}
 
 const NAV_ITEMS: {
   id: AppSection;
@@ -86,17 +93,80 @@ function WorkspaceShell() {
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const pushHistory = useCallback((next: NavSnapshot) => {
+    try {
+      window.history.pushState(next, '', `#/${next.portalMode}/${next.section}`);
+    } catch {
+      // Ignore history push restrictions if any
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.history.replaceState(
+        { section: 'overview', portalMode: 'manager' } satisfies NavSnapshot,
+        '',
+        '#/manager/overview'
+      );
+    } catch {
+      // Ignore history replace restrictions
+    }
+  }, []);
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state as NavSnapshot | null;
+      if (state && state.section) {
+        setSection(state.section);
+        setPortalMode(state.portalMode);
+        setFocusedResidentId(state.residentId);
+        setFocusedTaskId(state.taskId);
+      } else {
+        setSection('overview');
+        setFocusedResidentId(undefined);
+        setFocusedTaskId(undefined);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [setPortalMode]);
+
   const handleNavigate = (
     target: AppSection,
     residentId?: string,
     taskId?: string
   ) => {
+    if (
+      target === section &&
+      residentId === focusedResidentId &&
+      taskId === focusedTaskId
+    ) {
+      setMobileNavOpen(false);
+      return;
+    }
+    pushHistory({
+      section: target,
+      portalMode,
+      residentId: residentId ?? focusedResidentId,
+      taskId,
+    });
     setSection(target);
     if (residentId) {
       setFocusedResidentId(residentId);
     }
     setFocusedTaskId(taskId);
     setMobileNavOpen(false);
+  };
+
+  const handleSwitchPortal = (mode: PortalMode) => {
+    if (mode === portalMode) return;
+    pushHistory({
+      section,
+      portalMode: mode,
+      residentId: focusedResidentId,
+      taskId: focusedTaskId,
+    });
+    setPortalMode(mode);
   };
 
   const currentNav = NAV_ITEMS.find((item) => item.id === section) ?? NAV_ITEMS[0];
@@ -129,7 +199,7 @@ function WorkspaceShell() {
           <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-lg">
             <button
               type="button"
-              onClick={() => setPortalMode('manager')}
+              onClick={() => handleSwitchPortal('manager')}
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                 portalMode === 'manager'
                   ? 'bg-white text-slate-900 shadow-sm'
@@ -140,7 +210,7 @@ function WorkspaceShell() {
             </button>
             <button
               type="button"
-              onClick={() => setPortalMode('staff')}
+              onClick={() => handleSwitchPortal('staff')}
               className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                 portalMode === 'staff'
                   ? 'bg-white text-slate-900 shadow-sm'
@@ -248,7 +318,7 @@ function WorkspaceShell() {
               <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => setPortalMode('manager')}
+                  onClick={() => handleSwitchPortal('manager')}
                   className={`px-2 py-1.5 text-xs font-medium rounded-md cursor-pointer ${
                     portalMode === 'manager'
                       ? 'bg-white text-slate-900 shadow-sm'
@@ -259,7 +329,7 @@ function WorkspaceShell() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPortalMode('staff')}
+                  onClick={() => handleSwitchPortal('staff')}
                   className={`px-2 py-1.5 text-xs font-medium rounded-md cursor-pointer ${
                     portalMode === 'staff'
                       ? 'bg-white text-slate-900 shadow-sm'
@@ -328,6 +398,7 @@ function WorkspaceShell() {
             >
               <Menu className="w-5 h-5" />
             </button>
+
             <div className="flex items-center gap-2 text-sm text-slate-500 truncate">
               <span className="hidden sm:inline whitespace-nowrap">
                 Kōwhai Grove
@@ -335,9 +406,13 @@ function WorkspaceShell() {
               <span className="hidden sm:inline" aria-hidden="true">
                 /
               </span>
-              <span className="whitespace-nowrap">
+              <button
+                type="button"
+                onClick={() => handleNavigate('overview')}
+                className="whitespace-nowrap hover:text-slate-900 cursor-pointer"
+              >
                 {portalMode === 'manager' ? 'Manager Portal' : 'Staff Portal'}
-              </span>
+              </button>
               <span aria-hidden="true">/</span>
               <span className="font-medium text-slate-900 truncate">
                 {currentBreadcrumb}
@@ -349,7 +424,9 @@ function WorkspaceShell() {
             <button
               type="button"
               onClick={() =>
-                setPortalMode(portalMode === 'manager' ? 'staff' : 'manager')
+                handleSwitchPortal(
+                  portalMode === 'manager' ? 'staff' : 'manager'
+                )
               }
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
